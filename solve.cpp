@@ -7,8 +7,9 @@
 
 using namespace std;
 
-mt19937_64 rnd(173124062026);
+mt19937_64 rnd(time(0));
 
+const int inf = (1ll << 30) - 1;
 int grid[3][3][3][3];
 int gg[3][3];
 int tur = -1;
@@ -43,7 +44,7 @@ int check(int a[3][3], int move) {
 
 int next_move(int last) {
     //cout << last / 3 << " " << last % 3 << '\n';
-    if (gg[last / 3][last % 3] != -1) {
+    if (last < 0 || gg[last / 3][last % 3] != -1) {
         for (int i = 0; i < 81; i++) {
             int x = rnd() % 9, y = rnd() % 9;
             if (gg[x / 3][y / 3] == -1 && grid[x / 3][y / 3][x % 3][y % 3] == -1) {
@@ -80,6 +81,46 @@ int next_move(int last) {
     return -1;
 }
 
+int weight(int move) {
+    int tp = check(gg, move);
+    if (tp != -1) {
+        return 1000 * (tp - 1);
+    }
+    int ans = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (gg[i][j] == -1) {
+                for (int o = 0; o < 3; o++) {
+                    for (int e = 0; e < 3; e++) {
+                        if (grid[i][j][o][e] == move) ans++;
+                        else if (grid[i][j][o][e] == move ^ 1) ans--;
+                    }
+                }
+            } else {
+                if (gg[i][j] == move) ans += 100;
+                else ans -= 100;
+            }
+        }
+    }
+    return ans;
+}
+
+int monte_karlo(int last, int move, int dep) {
+    int ans = check(gg, move);
+    if (ans != -1 || dep == 0) {
+        return weight(move);
+    }
+    int nex = next_move(last);
+    int x = nex / 9, y = nex % 9;
+    int ls2 = gg[x / 3][y / 3];
+    grid[x / 3][y / 3][x % 3][y % 3] = move;
+    gg[x / 3][y / 3] = check(grid[x / 3][y / 3], tur);
+    ans = -monte_karlo((x % 3) * 3 + (y % 3), move ^ 1, dep - 1);
+    gg[x / 3][y / 3] = ls2;
+    grid[x / 3][y / 3][x % 3][y % 3] = -1;
+    return ans;
+}
+
 void solve() {
 /*/*
     for (int i = 0; i < 9; i++) {
@@ -111,7 +152,6 @@ void solve() {
     cin >> lx >> ly;
     if (!is_turn_known) {
         if (lx == -1 && ly == -1) {
-            lx = 0, ly = 0;
             tur = 0;
         } else {
             tur = 1;
@@ -128,6 +168,7 @@ void solve() {
     for (int i = 0; i < n; i++) {
         cin >> a[i].first >> a[i].second;
     }
+    shuffle(a.begin(), a.end(), rnd);
     /*
     for (int i = 0; i < 9; i++) {
         if (i % 3 == 0 && i) {
@@ -153,10 +194,26 @@ void solve() {
     }
     cout << '\n';
     */
-    int nex = next_move((lx % 3) * 3 + ly % 3);
-    grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = tur;
-    gg[(nex / 9) / 3][(nex % 9) / 3] = check(grid[(nex / 9) / 3][(nex % 9) / 3], tur);
-    cout << nex / 9 << " " << nex % 9;
+    int ans, s = -inf;
+    for (int i = 0; i < n; i++) {
+        int nex = a[i].first * 9 + a[i].second;
+        grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = tur;
+        int ls = gg[(nex / 9) / 3][(nex % 9) / 3];
+        gg[(nex / 9) / 3][(nex % 9) / 3] = check(grid[(nex / 9) / 3][(nex % 9) / 3], tur);
+        int ss = 0;
+        for (int j = 0; j < 100; j++) {
+            ss += -monte_karlo(((nex / 9) % 3) * 3 + (nex % 9) % 3, tur ^ 1, 50);
+        }
+        gg[(nex / 9) / 3][(nex % 9) / 3] = ls;
+        grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = -1;
+        if (ss > s) {
+            s = ss;
+            ans = nex;
+        }
+    }
+    grid[(ans / 9) / 3][(ans % 9) / 3][(ans / 9) % 3][(ans % 9) % 3] = tur;
+    gg[(ans / 9) / 3][(ans % 9) / 3] = check(grid[(ans / 9) / 3][(ans % 9) / 3], tur);
+    cout << ans / 9 << " " << ans % 9;
 }
 
 int main()
