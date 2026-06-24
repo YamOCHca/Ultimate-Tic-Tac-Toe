@@ -10,6 +10,8 @@ using namespace std;
 mt19937_64 rnd(time(0));
 
 const int inf = (1ll << 30) - 1;
+const double magic_constant = 69;
+const int iter = 1500;
 int grid[3][3][3][3];
 int gg[3][3];
 int tur = -1;
@@ -194,21 +196,46 @@ void solve() {
     }
     cout << '\n';
     */
-    int ans, s = -inf;
+    int ans;
+    vector<int> sum(n, 0), cnt(n, 0);
+    int c = n * 10;
     for (int i = 0; i < n; i++) {
         int nex = a[i].first * 9 + a[i].second;
         grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = tur;
         int ls = gg[(nex / 9) / 3][(nex % 9) / 3];
         gg[(nex / 9) / 3][(nex % 9) / 3] = check(grid[(nex / 9) / 3][(nex % 9) / 3], tur);
-        int ss = 0;
-        for (int j = 0; j < 100; j++) {
-            ss += -monte_karlo(((nex / 9) % 3) * 3 + (nex % 9) % 3, tur ^ 1, 50);
+        for (int j = 0; j < 10; j++) {
+            sum[i] += -monte_karlo(((nex / 9) % 3) * 3 + (nex % 9) % 3, tur ^ 1, 30);
+            cnt[i]++;
         }
         gg[(nex / 9) / 3][(nex % 9) / 3] = ls;
         grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = -1;
+    }
+    for (int _ = 0; _ < iter; _++) {
+        double s = -inf, pos = -1;
+        for (int i = 0; i < n; i++) {
+            double ss = (1. * sum[i]) / cnt[i] + magic_constant * sqrt(log(c) / cnt[i]);
+            if (ss > s) {
+                s = ss;
+                pos = i;
+            }
+        }
+        int nex = a[pos].first * 9 + a[pos].second;
+        grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = tur;
+        int ls = gg[(nex / 9) / 3][(nex % 9) / 3];
+        gg[(nex / 9) / 3][(nex % 9) / 3] = check(grid[(nex / 9) / 3][(nex % 9) / 3], tur);
+        sum[pos] += -monte_karlo(((nex / 9) % 3) * 3 + (nex % 9) % 3, tur ^ 1, 30);
+        cnt[pos]++;
+        c++;
+        gg[(nex / 9) / 3][(nex % 9) / 3] = ls;
+        grid[(nex / 9) / 3][(nex % 9) / 3][(nex / 9) % 3][(nex % 9) % 3] = -1;
+    }
+    double s = -inf;
+    for (int i = 0; i < n; i++) {
+        double ss = (1. * sum[i]) / cnt[i] + magic_constant * sqrt(log(c) / cnt[i]);
         if (ss > s) {
             s = ss;
-            ans = nex;
+            ans = a[i].first * 9 + a[i].second;
         }
     }
     grid[(ans / 9) / 3][(ans % 9) / 3][(ans / 9) % 3][(ans % 9) % 3] = tur;
